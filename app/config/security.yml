@@ -1,11 +1,18 @@
 # To get started with security, check out the documentation:
 # http://symfony.com/doc/current/book/security.html
 security:
+    encoders:
+        FOS\UserBundle\Model\UserInterface: sha512
 
-    # http://symfony.com/doc/current/book/security.html#where-do-users-come-from-user-providers
+    role_hierarchy:
+        ROLE_USER:        [ROLE_USER]
+        ROLE_ADMIN:       [ROLE_ADMIN]
+        ROLE_SUPER_ADMIN: [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH]
+
     providers:
         fos_userbundle:
             id: fos_user.user_provider.username_email
+
 
     firewalls:
         # disables authentication for assets and the profiler, adapt it according to your needs
@@ -14,28 +21,39 @@ security:
             security: false
 
         main:
-            anonymous: ~
+            pattern : ^/
+            form_login:
+                provider: fos_userbundle
+                csrf_token_generator: security.csrf.token_manager # Use form.csrf_provider instead for Symfony <2.4
+                login_path:  /login
+                check_path:  /login/check
 
-        oauth:
-             # pattern:    ˆ/
-              #anonymous: ~
-              form_login:
-                  provider: fos_userbundle
-                  login_path: /login
+            oauth:
+                resource_owners:
+                    facebook:           "/login/check-facebook"
+                    google:             "/login/check-google"
+                    twitter:            "/login/check-twitter"
+                login_path:        /connect
+                failure_path:      /connect
+                check_path:        /connect_check
+                provider:         fos_userbundle
 
-              oauth:
-                  resource_owners:
-                      facebook:           "/login/check-facebook"
-                      google:             "/login/check-google"
-                      my_custom_provider: "/login/check-custom"
-                      my_github:          "/login/check-github"
-                  login_path:        /login
-                  use_forward:       false
-                  failure_path:      /login
+                # FOSUB integration
+                oauth_user_provider:
+                    service: my_user_provider
 
-                  # FOSUB integration
-                  oauth_user_provider:
-                      service: hwi_oauth.user.provider.fosub_bridge
+            logout:
+                path:   true
+            anonymous:    true
+        login:
+            pattern:  ^/login$
+            security: false
+
+
+
 
     access_control:
-            - { path: ^/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/login$, role: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/register, role: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/resetting, role: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/admin/, role: ROLE_ADMIN }

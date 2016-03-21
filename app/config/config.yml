@@ -2,11 +2,12 @@ imports:
     - { resource: parameters.yml }
     - { resource: security.yml }
     - { resource: services.yml }
+    - { resource: "@UserBundle/Resources/config/services.yml" }
 
 # Put parameters here that don't need to change on each machine where the app is deployed
 # http://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
-    locale: en
+    locale: fr
 
 framework:
     #esi:             ~
@@ -47,12 +48,6 @@ doctrine:
         user:     "%database_user%"
         password: "%database_password%"
         charset:  UTF8
-        # if using pdo_sqlite as your database driver:
-        #   1. add the path in parameters.yml
-        #     e.g. database_path: "%kernel.root_dir%/data/data.db3"
-        #   2. Uncomment database_path in parameters.yml.dist
-        #   3. Uncomment next line:
-        #     path:     "%database_path%"
 
     orm:
         auto_generate_proxy_classes: "%kernel.debug%"
@@ -68,39 +63,59 @@ swiftmailer:
     spool:     { type: memory }
 
 
+
+# FOS User Bundle
+fos_user:
+    db_driver: orm   # Le type de BDD à utiliser , nous utilisons l'ORM Doctrine
+    firewall_name: main   # Le nom de firewall derriere lequel on utilisera ces utilisateurs
+    # Permet de renseigner la nouvelle entity utilisateur
+    user_class: UserBundle\Entity\User     # La classe de l'entité User que nous utilisons
+    registration:
+        form:
+            type: social_fos_user_registration
+
 hwi_oauth:
+    connect:
+        confirmation: true
+        account_connector: my_user_provider
+    firewall_names: [main]
+    fosub:
+        username_iterations: 30
+        properties:
+            facebook: facebook_id
+            google: google_id
+            twitter: twitter_id
     resource_owners:
-            facebook:
-                type: facebook
-                client_id: %facebook_client_id%
-                client_secret: %facebook_client_secret%
-                scope: email
-                infos_url: "https://graph.facebook.com/me?fields=username,name,email,picture.type(large)"
-                paths:
-                    email:          email
-                    profilepicture: picture.data.url
-                options:
-                    display: popup #dialog is optimized for popup window
+        # Facebook Access
+        facebook:
+            type:                facebook
+            client_id:           4528564213
+            client_secret:       4856231
+            scope:               "email, public_profile"
+            infos_url:           "https://graph.facebook.com/me?fields=id,name,email,picture.type(large)"
+            paths:
+                email: email
+            options:
+                display: page
+        # Google Access
+        google:
+            type:                google
+            client_id:           837439520089-25oh7s9uc4l98go36inbub5fhfuo8mdq.apps.googleusercontent.com
+            client_secret:       AIzaSyB0V8oB78HKFTcgWJn4_pCFlwlpxnRZ7Ug
+            scope:               "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
+            paths:
+                email: email
+            options:
+                display: popup
+        # Twitter Access
+        twitter:
+            type:                twitter
+            client_id:           7859654236
+            client_secret:       785426321
+            scope:               ""
 
-            twitter:
-                type: twitter
-                client_id: %twitter_client_id%
-                client_secret: %twitter_client_secret%
-                paths:
-                    profilepicture: profile_image_url
-
-            google:
-                type: google
-                client_id: %google_client_id%
-                client_secret: %google_client_secret%
-                scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
-                paths:
-                    email:           email
-                    profilepicture:  picture
-
-                options:
-                     request_visible_actions: "http://schemas.google.com/AddActivity http://schemas.google.com/CommentActivity"
-
-
-    # list of firewall names the oauth bundle is active in
-    firewall_names: [oauth]
+    http_client:
+        timeout:       5
+        verify_peer:   true
+        ignore_errors: true
+        max_redirects: 5
